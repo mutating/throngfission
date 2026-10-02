@@ -13,6 +13,12 @@ readme = "README.md"
 requires-python = ">=3.8"
 dependencies = [
     'throng>=0.0.4',
+    'cantok>=0.0.43',
+    'dirstree>=0.0.12',
+    'locklib>=0.0.25',
+    'skelet>=0.0.21',
+    'kubernetes>=32.0.1',
+    'websocket-client>=1.8.0',
 ]
 classifiers = [
     "Operating System :: OS Independent",
@@ -47,7 +53,13 @@ keywords = [
 ]
 
 [tool.setuptools.package-data]
-"throngfission" = ["py.typed"]
+"throngfission" = ["py.typed", "*.sh", "*.json", "LICENSE.fission"]
+
+[project.scripts]
+throngfission = "throngfission.cli:main"
+
+[project.entry-points.throng]
+fission = "throngfission.plugin"
 
 [tool.setuptools.packages.find]
 include = ["throngfission*"]
@@ -61,6 +73,10 @@ omit = ["*tests*"]
 parallel = true
 plugins = ["coverage_pyver_pragma"]
 source = ["throngfission"]
+
+[tool.coverage.report]
+# Protocol declarations contain no executable implementation.
+exclude_also = ['class \w+\(Protocol\):']
 
 [tool.pytest.ini_options]
 norecursedirs = ["build", "mutants"]
