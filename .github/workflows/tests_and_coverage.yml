@@ -45,7 +45,7 @@ jobs:
         pth_file="$(python -c 'import sysconfig; print(sysconfig.get_path("purelib"))')/throng_coverage_process_startup.pth"
         printf "import os; os.getenv('COVERAGE_PROCESS_START') and __import__('coverage').process_startup()\n" > "$pth_file"
         coverage erase
-        COVERAGE_PROCESS_START="$PWD/pyproject.toml" coverage run -m pytest -n auto --cache-clear --assert=plain
+        COVERAGE_PROCESS_START="$PWD/pyproject.toml" coverage run -m pytest tests/units -n auto --cache-clear --assert=plain
         coverage combine
         coverage report -m --fail-under=100
         coverage xml
@@ -66,6 +66,22 @@ jobs:
         pth_file="$(python -c 'import sysconfig; print(sysconfig.get_path("purelib"))')/throng_coverage_process_startup.pth"
         printf "import os; os.getenv('COVERAGE_PROCESS_START') and __import__('coverage').process_startup()\n" > "$pth_file"
         coverage erase
-        THRONG_COVERAGE_BRANCH=true COVERAGE_PROCESS_START="$PWD/pyproject.toml" coverage run -m pytest -n auto --cache-clear --assert=plain
+        THRONG_COVERAGE_BRANCH=true COVERAGE_PROCESS_START="$PWD/pyproject.toml" coverage run -m pytest tests/units -n auto --cache-clear --assert=plain
         coverage combine
         coverage report -m --fail-under=100
+
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.13'
+    - uses: astral-sh/setup-uv@v7
+      with:
+        enable-cache: true
+    - name: Install dependencies and the library
+      run: uv pip install --system -r requirements_dev.txt .
+    - name: Test against disposable K3s and Fission
+      run: python -m pytest tests/e2e -v
