@@ -70,7 +70,7 @@ class Setup:
         self.manifests.ensure({'apiVersion': 'v1', 'kind': 'ConfigMap', 'metadata': {'name': 'throngfission-setup', 'namespace': control}, 'data': {'version': '1.27.0'}})
         text = Path(__file__).with_name('fission-v1.27.0.json').read_text()
         text = text.replace('__CONTROL_NAMESPACE__', json.dumps(control)[1:-1]).replace('__FUNCTION_NAMESPACE__', json.dumps(self.settings.namespace)[1:-1])
-        bodies = cast(List[Dict[str, object]], json.loads(text))
+        bodies = cast(List[Dict[str, object]], json.loads(text)['resources'])
         credentials = self.credentials()
         for body in bodies:
             metadata = cast(Dict[str, object], body['metadata'])
