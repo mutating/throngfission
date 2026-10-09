@@ -1,12 +1,11 @@
 import base64
 from pathlib import Path
 from threading import Lock
-from typing import List, Optional, Union
+from typing import List, Optional, Union, cast
 
 from cantok import AbstractToken, DefaultToken
 from locklib import ContextLockProtocol
 from throng import AbstractManager
-from throng.abstracts.results import RunResultProtocol
 
 from throngfission.archive import read_directory
 from throngfission.cluster import Cluster
@@ -16,8 +15,8 @@ from throngfission.settings import Settings
 
 
 class FissionManager(AbstractManager):
-    def __init__(self, path: Union[str, Path] = '.', exclude: Optional[List[str]] = None, *, settings: Optional[Settings] = None) -> None:
-        super().__init__(path, exclude)
+    def __init__(self, path: Union[str, Path] = '.', exclude: Optional[List[str]] = None, prepare: Optional[List[str]] = None, packages: Optional[List[str]] = None, *, settings: Optional[Settings] = None) -> None:
+        super().__init__(path, exclude, prepare, packages)
         self.settings = settings if settings is not None else Settings.from_env()  # type: ignore[misc]
         self.settings.validate()
         self.lock: ContextLockProtocol = Lock()
@@ -34,6 +33,9 @@ class FissionManager(AbstractManager):
         return read_directory(self.path, self.exclude)
 
     def get(self, state: bytes, token: AbstractToken = DefaultToken()) -> FissionIsolate:  # noqa: B008
+        return cast(FissionIsolate, super().get(state, token=token))
+
+    def _get(self, state: bytes, token: AbstractToken = DefaultToken()) -> FissionIsolate:  # noqa: B008
         token.check()
         cluster = self.cluster
         connection, pod, uid = cluster.connect(token)
@@ -60,20 +62,6 @@ class FissionManager(AbstractManager):
             connection.close()
             cluster.delete_pod(pod, uid)
             raise
-
-    def run(self, command: str, token: AbstractToken = DefaultToken()) -> RunResultProtocol:  # noqa: B008
-        isolate = self.get(self.read(), token)
-        try:
-            return isolate.run(command, token)
-        finally:
-            isolate.kill()
-
-    def chain(self, *commands: str, token: AbstractToken = DefaultToken()) -> List[RunResultProtocol]:  # noqa: B008
-        isolate = self.get(self.read(), token)
-        try:
-            return isolate.chain(*commands, token=token)
-        finally:
-            isolate.kill()
 
     def uninstall(self) -> None:
         """Remove this shared installation, terminating all its isolates."""

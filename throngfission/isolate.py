@@ -3,13 +3,13 @@ import shlex
 from dataclasses import dataclass
 from io import BytesIO
 from threading import Event, Lock, Thread
-from typing import List, Optional, cast
+from typing import List, Optional, Type, Union, cast
 
 from cantok import AbstractToken, DefaultToken
 from locklib import ContextLockProtocol
 from throng import AbstractIsolate
 from throng.abstracts.results import SimpleRunResult
-from throng.errors import CannotInstallDependencyError
+from throng.errors import CannotInstallDependencyError, InterruptedInstallationError
 
 from throngfission.cluster import Cluster
 from throngfission.connection import Connection
@@ -57,7 +57,10 @@ class FissionIsolate(AbstractIsolate):
             raise IsolateClosedError('The isolate was destroyed or its session was lost.')
         return self.connection
 
-    def run(self, command: str, token: AbstractToken = DefaultToken()) -> RunResult:  # noqa: B008
+    def run(self, command: str, token: AbstractToken = DefaultToken(), exception: Union[bool, BaseException, Type[BaseException]] = False) -> RunResult:  # noqa: B008
+        return cast(RunResult, super().run(command, token=token, exception=exception))
+
+    def _run(self, command: str, token: AbstractToken = DefaultToken()) -> RunResult:  # noqa: B008
         return self.execute(shlex.split(command), token)
 
     def execute(self, argv: List[str], token: AbstractToken) -> RunResult:
@@ -88,9 +91,14 @@ class FissionIsolate(AbstractIsolate):
                     return buffer.getvalue()
                 buffer.write(chunk)
 
-    def install(self, *packages: str) -> None:
-        if packages and not self.execute(['python', '-m', 'pip', 'install', *packages], DefaultToken()).success:
-            raise CannotInstallDependencyError('pip could not install the requested packages.')
+    def install(self, *packages: str, token: AbstractToken = DefaultToken()) -> None:  # noqa: B008
+        if not packages:
+            return
+        if not token:
+            raise InterruptedInstallationError('The installation of the requested packages has been cancelled.')
+        result = self.execute(['python', '-m', 'pip', 'install', *packages], token)
+        if not result.success:
+            raise CannotInstallDependencyError('pip could not install the requested packages.', result)
 
     def kill(self) -> None:
         if self.connection is None:

@@ -7,5 +7,5 @@ from throngfission.manager import FissionManager
 
 
 @throng.plugin(unique=True)
-def fission(path: Union[str, Path] = '.', exclude: Optional[List[str]] = None) -> FissionManager:
-    return FissionManager(path, exclude)
+def fission(path: Union[str, Path] = '.', exclude: Optional[List[str]] = None, prepare: Optional[List[str]] = None, packages: Optional[List[str]] = None) -> FissionManager:
+    return FissionManager(path, exclude, prepare, packages)

@@ -8,9 +8,9 @@ from cantok import TimeoutToken
 from locklib import LockTraceWrapper, SmartLock
 
 from throngfission import FissionManager, Settings
-from throngfission.api import Kubernetes
-from throngfission.settings import SetupSettings
-from throngfission.setup import Setup
+from throngfission.cli.settings import SetupSettings
+from throngfission.cli.setup import Setup
+from throngfission.execution.api import Kubernetes
 
 
 def pytest_addoption(parser):
@@ -39,7 +39,7 @@ def kubernetes_cluster(request, tmp_path_factory):
         for index in range(2):
             agent = DockerContainer('rancher/k3s:v1.36.3-k3s1').with_network(network)
             agent.with_env('K3S_URL', 'https://server:6443').with_env('K3S_TOKEN', token)
-            agent.with_command('agent --node-name=throngfission-agent-' + str(index))
+            agent.with_command(f'agent --node-name=throngfission-agent-{index!s}')
             agent.with_kwargs(privileged=True).with_tmpfs_mount('/run').with_tmpfs_mount('/var/run')
             stack.callback(agent.stop)
             nodes.append(agent.start())
@@ -93,7 +93,7 @@ def fission_cluster(setup_cluster):
 def manager(fission_cluster, tmp_path):
     """Give each test an installation and verify all its resources disappear."""
     settings = Settings.from_env()
-    settings.name = 'throngfission-e2e-' + uuid4().hex[:8]
+    settings.name = f'throngfission-e2e-{uuid4().hex[:8]}'
     settings.heartbeat_interval = 1.0
     settings.session_timeout = 45.0
     for key, value in fission_cluster.items():
@@ -106,9 +106,9 @@ def manager(fission_cluster, tmp_path):
             try:
                 manager.uninstall()
                 token = TimeoutToken(120)
-                paths = [manager.cluster.core + 'pods', '/apis/apps/v1/namespaces/' + settings.namespace + '/deployments', '/apis/batch/v1/namespaces/' + settings.namespace + '/jobs']
+                paths = [f'{manager.cluster.core}pods', f'/apis/apps/v1/namespaces/{settings.namespace}/deployments', f'/apis/batch/v1/namespaces/{settings.namespace}/jobs']
                 for path in paths:
-                    while manager.cluster.api.request('GET', path, query=[('labelSelector', 'throngfission.io/installation=' + settings.name)])['items']:
+                    while manager.cluster.api.request('GET', path, query=[('labelSelector', f'throngfission.io/installation={settings.name}')])['items']:
                         token.check()
                         sleep(0.2)
             finally:
