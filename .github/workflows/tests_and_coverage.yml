@@ -39,6 +39,10 @@ jobs:
       shell: bash
       run: uv pip list --system
 
+    - name: Test public API types
+      shell: bash
+      run: python -m pytest tests/typing -q
+
     - name: Run tests and show coverage on the command line
       shell: bash
       run: |
