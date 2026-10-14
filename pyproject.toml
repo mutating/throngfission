@@ -53,13 +53,14 @@ keywords = [
 ]
 
 [tool.setuptools.package-data]
-"throngfission" = ["py.typed", "*.sh", "*.json", "LICENSE.fission"]
+"throngfission" = ["py.typed"]
+"throngfission.cli" = ["assets/*.sh", "assets/*.json", "assets/LICENSE.fission"]
 
 [project.scripts]
-throngfission = "throngfission.cli:main"
+throngfission = "throngfission.cli.main:main"
 
 [project.entry-points.throng]
-fission = "throngfission.plugin"
+fission = "throngfission.execution.plugin"
 
 [tool.setuptools.packages.find]
 include = ["throngfission*"]
