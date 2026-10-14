@@ -1,3 +1,3 @@
-from throngfission.cli import main
+from throngfission.cli.main import main
 
 raise SystemExit(main())
